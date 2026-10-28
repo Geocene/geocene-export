@@ -1,0 +1,39 @@
+name: Checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Install the package
+        run: python -m pip install .
+      - name: Test Python workflows
+        run: python -m unittest discover -s tests
+      - name: Test Postman collection scripts
+        run: node --test tests/test_postman.js
+      - name: Check installed commands outside the checkout
+        working-directory: ${{ runner.temp }}
+        run: |
+          geocene-export --help
+          python -m geocene_export --help

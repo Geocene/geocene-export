@@ -1,0 +1,1073 @@
+{
+  "name": "Geocene - 2 - Poll and download existing exports",
+  "flow": [
+    {
+      "id": 1,
+      "module": "datastore:SearchRecord",
+      "version": 1,
+      "parameters": {
+        "datastore": null,
+        "continueWhenNoRes": false,
+        "limit": 5
+      },
+      "mapper": {
+        "filter": [
+          [
+            {
+              "a": "state",
+              "o": "text:equal",
+              "b": "pending"
+            }
+          ]
+        ],
+        "sort": [
+          {
+            "key": "submitted_at",
+            "order": 1
+          }
+        ],
+        "mappAbleLimit": ""
+      },
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0,
+          "name": "Read up to five pending jobs"
+        },
+        "parameters": [
+          {
+            "name": "datastore",
+            "type": "datastore",
+            "label": "datastore",
+            "required": true
+          },
+          {
+            "name": "continueWhenNoRes",
+            "type": "boolean",
+            "label": "continueWhenNoRes"
+          },
+          {
+            "name": "limit",
+            "type": "uinteger",
+            "label": "limit"
+          }
+        ],
+        "interface": [
+          {
+            "name": "key",
+            "type": "text",
+            "label": "key"
+          },
+          {
+            "name": "data",
+            "type": "collection",
+            "label": "data",
+            "spec": [
+              {
+                "name": "job_id",
+                "type": "text",
+                "label": "job_id"
+              },
+              {
+                "name": "submitted_at",
+                "type": "text",
+                "label": "submitted_at"
+              },
+              {
+                "name": "attempts",
+                "type": "number",
+                "label": "attempts"
+              },
+              {
+                "name": "state",
+                "type": "text",
+                "label": "state"
+              },
+              {
+                "name": "last_status",
+                "type": "text",
+                "label": "last_status"
+              },
+              {
+                "name": "download_url",
+                "type": "text",
+                "label": "download_url"
+              },
+              {
+                "name": "organization_id",
+                "type": "text",
+                "label": "organization_id"
+              },
+              {
+                "name": "tag_id",
+                "type": "text",
+                "label": "tag_id"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "parameters": {},
+      "mapper": null,
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 150,
+          "name": "Bound polling by persisted attempts"
+        }
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 3,
+              "module": "datastore:AddRecord",
+              "version": 1,
+              "parameters": {
+                "datastore": null
+              },
+              "mapper": {
+                "key": "{{1.key}}",
+                "data": {
+                  "job_id": "{{1.data.job_id}}",
+                  "submitted_at": "{{1.data.submitted_at}}",
+                  "attempts": "{{1.data.attempts}}",
+                  "state": "timed_out",
+                  "last_status": "{{1.data.last_status}}",
+                  "download_url": "{{1.data.download_url}}",
+                  "organization_id": "{{1.data.organization_id}}",
+                  "tag_id": "{{1.data.tag_id}}"
+                },
+                "overwrite": true
+              },
+              "metadata": {
+                "designer": {
+                  "x": 600,
+                  "y": -300,
+                  "name": "Stop after 96 polling attempts"
+                },
+                "parameters": [
+                  {
+                    "name": "datastore",
+                    "type": "datastore",
+                    "label": "datastore",
+                    "required": true
+                  }
+                ],
+                "expect": [
+                  {
+                    "name": "key",
+                    "type": "text",
+                    "label": "key"
+                  },
+                  {
+                    "name": "overwrite",
+                    "type": "boolean",
+                    "label": "overwrite",
+                    "required": true
+                  },
+                  {
+                    "name": "data",
+                    "type": "collection",
+                    "label": "data",
+                    "spec": [
+                      {
+                        "name": "job_id",
+                        "type": "text",
+                        "label": "job_id"
+                      },
+                      {
+                        "name": "submitted_at",
+                        "type": "text",
+                        "label": "submitted_at"
+                      },
+                      {
+                        "name": "attempts",
+                        "type": "number",
+                        "label": "attempts"
+                      },
+                      {
+                        "name": "state",
+                        "type": "text",
+                        "label": "state"
+                      },
+                      {
+                        "name": "last_status",
+                        "type": "text",
+                        "label": "last_status"
+                      },
+                      {
+                        "name": "download_url",
+                        "type": "text",
+                        "label": "download_url"
+                      },
+                      {
+                        "name": "organization_id",
+                        "type": "text",
+                        "label": "organization_id"
+                      },
+                      {
+                        "name": "tag_id",
+                        "type": "text",
+                        "label": "tag_id"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "filter": {
+                "name": "96 attempts used",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.data.attempts}}",
+                      "o": "number:greater",
+                      "b": "95"
+                    }
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 4,
+              "module": "datastore:AddRecord",
+              "version": 1,
+              "parameters": {
+                "datastore": null
+              },
+              "mapper": {
+                "key": "{{1.key}}",
+                "data": {
+                  "job_id": "{{1.data.job_id}}",
+                  "submitted_at": "{{1.data.submitted_at}}",
+                  "attempts": "{{1.data.attempts + 1}}",
+                  "state": "{{1.data.state}}",
+                  "last_status": "{{1.data.last_status}}",
+                  "download_url": "{{1.data.download_url}}",
+                  "organization_id": "{{1.data.organization_id}}",
+                  "tag_id": "{{1.data.tag_id}}"
+                },
+                "overwrite": true
+              },
+              "metadata": {
+                "designer": {
+                  "x": 600,
+                  "y": 150,
+                  "name": "Persist attempt before network request"
+                },
+                "parameters": [
+                  {
+                    "name": "datastore",
+                    "type": "datastore",
+                    "label": "datastore",
+                    "required": true
+                  }
+                ],
+                "expect": [
+                  {
+                    "name": "key",
+                    "type": "text",
+                    "label": "key"
+                  },
+                  {
+                    "name": "overwrite",
+                    "type": "boolean",
+                    "label": "overwrite",
+                    "required": true
+                  },
+                  {
+                    "name": "data",
+                    "type": "collection",
+                    "label": "data",
+                    "spec": [
+                      {
+                        "name": "job_id",
+                        "type": "text",
+                        "label": "job_id"
+                      },
+                      {
+                        "name": "submitted_at",
+                        "type": "text",
+                        "label": "submitted_at"
+                      },
+                      {
+                        "name": "attempts",
+                        "type": "number",
+                        "label": "attempts"
+                      },
+                      {
+                        "name": "state",
+                        "type": "text",
+                        "label": "state"
+                      },
+                      {
+                        "name": "last_status",
+                        "type": "text",
+                        "label": "last_status"
+                      },
+                      {
+                        "name": "download_url",
+                        "type": "text",
+                        "label": "download_url"
+                      },
+                      {
+                        "name": "organization_id",
+                        "type": "text",
+                        "label": "organization_id"
+                      },
+                      {
+                        "name": "tag_id",
+                        "type": "text",
+                        "label": "tag_id"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "filter": {
+                "name": "Polling budget remains",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.data.attempts}}",
+                      "o": "number:less",
+                      "b": "96"
+                    }
+                  ]
+                ]
+              }
+            },
+            {
+              "id": 5,
+              "module": "http:ActionSendDataAPIKeyAuth",
+              "version": 3,
+              "parameters": {
+                "auth": null,
+                "handleErrors": true,
+                "useNewZLibDeCompress": true
+              },
+              "mapper": {
+                "url": "https://collect.geocene.com/data_export_request/{{1.data.job_id}}/",
+                "serializeUrl": false,
+                "method": "get",
+                "headers": [],
+                "qs": [],
+                "bodyType": "",
+                "parseResponse": true,
+                "timeout": "60",
+                "shareCookies": false,
+                "ca": "",
+                "rejectUnauthorized": true,
+                "followRedirect": false,
+                "useQuerystring": false,
+                "gzip": true,
+                "useMtls": false,
+                "followAllRedirects": false
+              },
+              "metadata": {
+                "designer": {
+                  "x": 840,
+                  "y": 150,
+                  "name": "Check this existing job once"
+                },
+                "parameters": [
+                  {
+                    "name": "auth",
+                    "type": "keychain:apikeyauth",
+                    "label": "auth",
+                    "required": true
+                  },
+                  {
+                    "name": "handleErrors",
+                    "type": "boolean",
+                    "label": "handleErrors",
+                    "required": true
+                  },
+                  {
+                    "name": "useNewZLibDeCompress",
+                    "type": "hidden",
+                    "label": "useNewZLibDeCompress"
+                  }
+                ]
+              },
+              "onerror": [
+                {
+                  "id": 13,
+                  "module": "builtin:Ignore",
+                  "version": 1,
+                  "metadata": {
+                    "designer": {
+                      "x": 840,
+                      "y": 330,
+                      "name": "Skip failed job this run; keep pending"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "id": 6,
+              "module": "builtin:BasicRouter",
+              "version": 1,
+              "parameters": {
+                "else": 3
+              },
+              "mapper": null,
+              "metadata": {
+                "designer": {
+                  "x": 1080,
+                  "y": 150,
+                  "name": "Route by terminal status"
+                }
+              },
+              "routes": [
+                {
+                  "flow": [
+                    {
+                      "id": 7,
+                      "module": "datastore:AddRecord",
+                      "version": 1,
+                      "parameters": {
+                        "datastore": null
+                      },
+                      "mapper": {
+                        "key": "{{1.key}}",
+                        "data": {
+                          "job_id": "{{1.data.job_id}}",
+                          "submitted_at": "{{1.data.submitted_at}}",
+                          "attempts": "{{1.data.attempts + 1}}",
+                          "state": "{{1.data.state}}",
+                          "last_status": "{{5.data.status}}",
+                          "download_url": "{{ifempty(5.data.download_url; emptystring)}}",
+                          "organization_id": "{{1.data.organization_id}}",
+                          "tag_id": "{{1.data.tag_id}}"
+                        },
+                        "overwrite": true
+                      },
+                      "metadata": {
+                        "designer": {
+                          "x": 1320,
+                          "y": -150,
+                          "name": "Save download URL; keep pending until file fetched"
+                        },
+                        "parameters": [
+                          {
+                            "name": "datastore",
+                            "type": "datastore",
+                            "label": "datastore",
+                            "required": true
+                          }
+                        ],
+                        "expect": [
+                          {
+                            "name": "key",
+                            "type": "text",
+                            "label": "key"
+                          },
+                          {
+                            "name": "overwrite",
+                            "type": "boolean",
+                            "label": "overwrite",
+                            "required": true
+                          },
+                          {
+                            "name": "data",
+                            "type": "collection",
+                            "label": "data",
+                            "spec": [
+                              {
+                                "name": "job_id",
+                                "type": "text",
+                                "label": "job_id"
+                              },
+                              {
+                                "name": "submitted_at",
+                                "type": "text",
+                                "label": "submitted_at"
+                              },
+                              {
+                                "name": "attempts",
+                                "type": "number",
+                                "label": "attempts"
+                              },
+                              {
+                                "name": "state",
+                                "type": "text",
+                                "label": "state"
+                              },
+                              {
+                                "name": "last_status",
+                                "type": "text",
+                                "label": "last_status"
+                              },
+                              {
+                                "name": "download_url",
+                                "type": "text",
+                                "label": "download_url"
+                              },
+                              {
+                                "name": "organization_id",
+                                "type": "text",
+                                "label": "organization_id"
+                              },
+                              {
+                                "name": "tag_id",
+                                "type": "text",
+                                "label": "tag_id"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "filter": {
+                        "name": "Only success plus a URL is ready",
+                        "conditions": [
+                          [
+                            {
+                              "a": "{{5.data.status}}",
+                              "o": "text:equal",
+                              "b": "success"
+                            },
+                            {
+                              "a": "{{length(5.data.download_url)}}",
+                              "o": "number:greater",
+                              "b": "0"
+                            }
+                          ]
+                        ]
+                      }
+                    },
+                    {
+                      "id": 8,
+                      "module": "http:ActionGetFile",
+                      "version": 3,
+                      "parameters": {
+                        "handleErrors": true
+                      },
+                      "mapper": {
+                        "url": "{{5.data.download_url}}",
+                        "method": "get",
+                        "serializeUrl": false,
+                        "shareCookies": false
+                      },
+                      "metadata": {
+                        "designer": {
+                          "x": 1560,
+                          "y": -150,
+                          "name": "Download ZIP without API credentials"
+                        },
+                        "parameters": [
+                          {
+                            "name": "handleErrors",
+                            "type": "boolean",
+                            "label": "handleErrors",
+                            "required": true
+                          }
+                        ],
+                        "interface": [
+                          {
+                            "name": "fileName",
+                            "type": "filename",
+                            "label": "fileName"
+                          },
+                          {
+                            "name": "data",
+                            "type": "buffer",
+                            "label": "data"
+                          }
+                        ]
+                      },
+                      "onerror": [
+                        {
+                          "id": 14,
+                          "module": "builtin:Ignore",
+                          "version": 1,
+                          "metadata": {
+                            "designer": {
+                              "x": 1560,
+                              "y": 30,
+                              "name": "Skip failed job this run; keep pending"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "id": 9,
+                      "module": "datastore:AddRecord",
+                      "version": 1,
+                      "parameters": {
+                        "datastore": null
+                      },
+                      "mapper": {
+                        "key": "{{1.key}}",
+                        "data": {
+                          "job_id": "{{1.data.job_id}}",
+                          "submitted_at": "{{1.data.submitted_at}}",
+                          "attempts": "{{1.data.attempts + 1}}",
+                          "state": "downloaded_to_make",
+                          "last_status": "{{5.data.status}}",
+                          "download_url": "{{ifempty(5.data.download_url; emptystring)}}",
+                          "organization_id": "{{1.data.organization_id}}",
+                          "tag_id": "{{1.data.tag_id}}"
+                        },
+                        "overwrite": true
+                      },
+                      "metadata": {
+                        "designer": {
+                          "x": 1800,
+                          "y": -150,
+                          "name": "File fetched into Make; add storage before this step"
+                        },
+                        "parameters": [
+                          {
+                            "name": "datastore",
+                            "type": "datastore",
+                            "label": "datastore",
+                            "required": true
+                          }
+                        ],
+                        "expect": [
+                          {
+                            "name": "key",
+                            "type": "text",
+                            "label": "key"
+                          },
+                          {
+                            "name": "overwrite",
+                            "type": "boolean",
+                            "label": "overwrite",
+                            "required": true
+                          },
+                          {
+                            "name": "data",
+                            "type": "collection",
+                            "label": "data",
+                            "spec": [
+                              {
+                                "name": "job_id",
+                                "type": "text",
+                                "label": "job_id"
+                              },
+                              {
+                                "name": "submitted_at",
+                                "type": "text",
+                                "label": "submitted_at"
+                              },
+                              {
+                                "name": "attempts",
+                                "type": "number",
+                                "label": "attempts"
+                              },
+                              {
+                                "name": "state",
+                                "type": "text",
+                                "label": "state"
+                              },
+                              {
+                                "name": "last_status",
+                                "type": "text",
+                                "label": "last_status"
+                              },
+                              {
+                                "name": "download_url",
+                                "type": "text",
+                                "label": "download_url"
+                              },
+                              {
+                                "name": "organization_id",
+                                "type": "text",
+                                "label": "organization_id"
+                              },
+                              {
+                                "name": "tag_id",
+                                "type": "text",
+                                "label": "tag_id"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "flow": [
+                    {
+                      "id": 10,
+                      "module": "datastore:AddRecord",
+                      "version": 1,
+                      "parameters": {
+                        "datastore": null
+                      },
+                      "mapper": {
+                        "key": "{{1.key}}",
+                        "data": {
+                          "job_id": "{{1.data.job_id}}",
+                          "submitted_at": "{{1.data.submitted_at}}",
+                          "attempts": "{{1.data.attempts + 1}}",
+                          "state": "{{1.data.state}}",
+                          "last_status": "{{5.data.status}}",
+                          "download_url": "{{ifempty(5.data.download_url; emptystring)}}",
+                          "organization_id": "{{1.data.organization_id}}",
+                          "tag_id": "{{1.data.tag_id}}"
+                        },
+                        "overwrite": true
+                      },
+                      "metadata": {
+                        "designer": {
+                          "x": 1320,
+                          "y": 150,
+                          "name": "Pending or processing: leave for a later run"
+                        },
+                        "parameters": [
+                          {
+                            "name": "datastore",
+                            "type": "datastore",
+                            "label": "datastore",
+                            "required": true
+                          }
+                        ],
+                        "expect": [
+                          {
+                            "name": "key",
+                            "type": "text",
+                            "label": "key"
+                          },
+                          {
+                            "name": "overwrite",
+                            "type": "boolean",
+                            "label": "overwrite",
+                            "required": true
+                          },
+                          {
+                            "name": "data",
+                            "type": "collection",
+                            "label": "data",
+                            "spec": [
+                              {
+                                "name": "job_id",
+                                "type": "text",
+                                "label": "job_id"
+                              },
+                              {
+                                "name": "submitted_at",
+                                "type": "text",
+                                "label": "submitted_at"
+                              },
+                              {
+                                "name": "attempts",
+                                "type": "number",
+                                "label": "attempts"
+                              },
+                              {
+                                "name": "state",
+                                "type": "text",
+                                "label": "state"
+                              },
+                              {
+                                "name": "last_status",
+                                "type": "text",
+                                "label": "last_status"
+                              },
+                              {
+                                "name": "download_url",
+                                "type": "text",
+                                "label": "download_url"
+                              },
+                              {
+                                "name": "organization_id",
+                                "type": "text",
+                                "label": "organization_id"
+                              },
+                              {
+                                "name": "tag_id",
+                                "type": "text",
+                                "label": "tag_id"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "filter": {
+                        "name": "Still working",
+                        "conditions": [
+                          [
+                            {
+                              "a": "{{5.data.status}}",
+                              "o": "text:equal",
+                              "b": "pending"
+                            }
+                          ],
+                          [
+                            {
+                              "a": "{{5.data.status}}",
+                              "o": "text:equal",
+                              "b": "processing"
+                            }
+                          ]
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "flow": [
+                    {
+                      "id": 11,
+                      "module": "datastore:AddRecord",
+                      "version": 1,
+                      "parameters": {
+                        "datastore": null
+                      },
+                      "mapper": {
+                        "key": "{{1.key}}",
+                        "data": {
+                          "job_id": "{{1.data.job_id}}",
+                          "submitted_at": "{{1.data.submitted_at}}",
+                          "attempts": "{{1.data.attempts + 1}}",
+                          "state": "failed",
+                          "last_status": "{{5.data.status}}",
+                          "download_url": "{{ifempty(5.data.download_url; emptystring)}}",
+                          "organization_id": "{{1.data.organization_id}}",
+                          "tag_id": "{{1.data.tag_id}}"
+                        },
+                        "overwrite": true
+                      },
+                      "metadata": {
+                        "designer": {
+                          "x": 1320,
+                          "y": 450,
+                          "name": "Terminal API failure; preserve job ID"
+                        },
+                        "parameters": [
+                          {
+                            "name": "datastore",
+                            "type": "datastore",
+                            "label": "datastore",
+                            "required": true
+                          }
+                        ],
+                        "expect": [
+                          {
+                            "name": "key",
+                            "type": "text",
+                            "label": "key"
+                          },
+                          {
+                            "name": "overwrite",
+                            "type": "boolean",
+                            "label": "overwrite",
+                            "required": true
+                          },
+                          {
+                            "name": "data",
+                            "type": "collection",
+                            "label": "data",
+                            "spec": [
+                              {
+                                "name": "job_id",
+                                "type": "text",
+                                "label": "job_id"
+                              },
+                              {
+                                "name": "submitted_at",
+                                "type": "text",
+                                "label": "submitted_at"
+                              },
+                              {
+                                "name": "attempts",
+                                "type": "number",
+                                "label": "attempts"
+                              },
+                              {
+                                "name": "state",
+                                "type": "text",
+                                "label": "state"
+                              },
+                              {
+                                "name": "last_status",
+                                "type": "text",
+                                "label": "last_status"
+                              },
+                              {
+                                "name": "download_url",
+                                "type": "text",
+                                "label": "download_url"
+                              },
+                              {
+                                "name": "organization_id",
+                                "type": "text",
+                                "label": "organization_id"
+                              },
+                              {
+                                "name": "tag_id",
+                                "type": "text",
+                                "label": "tag_id"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "filter": {
+                        "name": "Failed or error",
+                        "conditions": [
+                          [
+                            {
+                              "a": "{{5.data.status}}",
+                              "o": "text:equal",
+                              "b": "failed"
+                            }
+                          ],
+                          [
+                            {
+                              "a": "{{5.data.status}}",
+                              "o": "text:equal",
+                              "b": "error"
+                            }
+                          ]
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "flow": [
+                    {
+                      "id": 12,
+                      "module": "datastore:AddRecord",
+                      "version": 1,
+                      "parameters": {
+                        "datastore": null
+                      },
+                      "mapper": {
+                        "key": "{{1.key}}",
+                        "data": {
+                          "job_id": "{{1.data.job_id}}",
+                          "submitted_at": "{{1.data.submitted_at}}",
+                          "attempts": "{{1.data.attempts + 1}}",
+                          "state": "needs_attention",
+                          "last_status": "{{5.data.status}}",
+                          "download_url": "{{ifempty(5.data.download_url; emptystring)}}",
+                          "organization_id": "{{1.data.organization_id}}",
+                          "tag_id": "{{1.data.tag_id}}"
+                        },
+                        "overwrite": true
+                      },
+                      "metadata": {
+                        "designer": {
+                          "x": 1320,
+                          "y": 750,
+                          "name": "Unexpected response or success without URL: stop"
+                        },
+                        "parameters": [
+                          {
+                            "name": "datastore",
+                            "type": "datastore",
+                            "label": "datastore",
+                            "required": true
+                          }
+                        ],
+                        "expect": [
+                          {
+                            "name": "key",
+                            "type": "text",
+                            "label": "key"
+                          },
+                          {
+                            "name": "overwrite",
+                            "type": "boolean",
+                            "label": "overwrite",
+                            "required": true
+                          },
+                          {
+                            "name": "data",
+                            "type": "collection",
+                            "label": "data",
+                            "spec": [
+                              {
+                                "name": "job_id",
+                                "type": "text",
+                                "label": "job_id"
+                              },
+                              {
+                                "name": "submitted_at",
+                                "type": "text",
+                                "label": "submitted_at"
+                              },
+                              {
+                                "name": "attempts",
+                                "type": "number",
+                                "label": "attempts"
+                              },
+                              {
+                                "name": "state",
+                                "type": "text",
+                                "label": "state"
+                              },
+                              {
+                                "name": "last_status",
+                                "type": "text",
+                                "label": "last_status"
+                              },
+                              {
+                                "name": "download_url",
+                                "type": "text",
+                                "label": "download_url"
+                              },
+                              {
+                                "name": "organization_id",
+                                "type": "text",
+                                "label": "organization_id"
+                              },
+                              {
+                                "name": "tag_id",
+                                "type": "text",
+                                "label": "tag_id"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "filter": {
+                        "name": "Fallback: unexpected response",
+                        "conditions": []
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "instant": false,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": true,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false,
+      "freshVariables": false
+    },
+    "designer": {
+      "orphans": []
+    }
+  }
+}

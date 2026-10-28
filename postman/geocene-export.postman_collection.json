@@ -1,0 +1,425 @@
+{
+  "info": {
+    "name": "Geocene Export",
+    "schema": "https://schema.postman.com/json/collection/v2.1.0/collection.json",
+    "description": "Import the accompanying environment and Send requests in order. Metrics are excluded by default. Check export manually; do not run the collection in a loop. Token and signed download URL are credentials: keep values local and do not share populated environments or responses."
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "Authorization",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "Token {{token}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Use the selected environment, even if a global variable has the same name.",
+          "function stopRequest(message) {",
+          "    pm.execution.skipRequest();",
+          "    throw new Error(message);",
+          "}",
+          "if (!pm.environment.get('base_url')) stopRequest('Select the Geocene Export environment.');",
+          "const keys = ['base_url', 'username', 'password', 'token', 'organization_id',",
+          "    'tag_id', 'tags_page', 'job_id', 'job_status', 'download_url'];",
+          "keys.forEach(key => pm.variables.set(key, pm.environment.get(key) || ''));",
+          "const name = pm.info.requestName;",
+          "if (name !== '7. Download ZIP') {",
+          "    const base = String(pm.environment.get('base_url') || '').replace(/\\/$/, '');",
+          "    if (base !== 'https://collect.geocene.com') {",
+          "        stopRequest('This collection sends credentials only to https://collect.geocene.com.');",
+          "    }",
+          "    pm.variables.set('base_url', base);",
+          "    if (name !== '1. Sign in' && !pm.environment.get('token')) {",
+          "        stopRequest('Send Sign in first, or set token in this environment.');",
+          "    }",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Sign in",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api-token-auth/",
+        "description": "Set username and password in the selected environment, then Send. Saves token and clears password. If you already have a token, set token and skip this request.",
+        "body": {
+          "mode": "raw",
+          "raw": "{{login_body}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.environment.get('username') || !pm.environment.get('password')) {",
+              "    pm.execution.skipRequest();",
+              "    throw new Error('Set username and password in the selected environment.');",
+              "}",
+              "['token', 'mission_ids', 'selection_scope', 'job_status', 'download_url', 'download_job_id']",
+              "    .forEach(key => pm.environment.unset(key));",
+              "pm.variables.set('login_body', JSON.stringify({",
+              "    username: pm.environment.get('username'),",
+              "    password: pm.environment.get('password')",
+              "}));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code !== 200) throw new Error('Sign in failed. Check your credentials.');",
+              "const token = pm.response.json().token;",
+              "if (typeof token !== 'string' || !token.trim()) throw new Error('No token returned.');",
+              "pm.environment.set('token', token);",
+              "pm.environment.unset('password');"
+            ]
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "followRedirects": false,
+        "disableCookies": true
+      }
+    },
+    {
+      "name": "2. Organizations",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/current_user/",
+        "description": "Send, then copy an id from response.organizations into organization_id."
+      },
+      "event": [],
+      "protocolProfileBehavior": {
+        "followRedirects": false,
+        "disableCookies": true
+      }
+    },
+    {
+      "name": "3. Tags (optional)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/tags/?organization={{organization_id}}&page={{tags_page}}",
+        "description": "Optional: find a tag by name and put its numeric id in tag_id. If next is not null, increase tags_page and Send again. Leave tag_id blank to select all nonarchived missions."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const org = String(pm.environment.get('organization_id') || '');",
+              "if (!/^[1-9]\\d*$/.test(org)) {",
+              "    pm.execution.skipRequest();",
+              "    throw new Error('Set organization_id from the Organizations response.');",
+              "}",
+              "",
+              "if (!/^[1-9]\\d*$/.test(String(pm.environment.get('tags_page') || ''))) {",
+              "    pm.execution.skipRequest();",
+              "    throw new Error('Set tags_page to 1, or the next page number.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "followRedirects": false,
+        "disableCookies": true
+      }
+    },
+    {
+      "name": "4. Select missions",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/missions/flat_values/?organization={{organization_id}}&archived=false&tag_logic=all",
+        "description": "Selects nonarchived missions in organization_id, optionally filtered by tag_id. Saves mission_ids. An empty result blocks export creation."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const org = String(pm.environment.get('organization_id') || '');",
+              "if (!/^[1-9]\\d*$/.test(org)) {",
+              "    pm.execution.skipRequest();",
+              "    throw new Error('Set organization_id from the Organizations response.');",
+              "}",
+              "",
+              "if (pm.environment.get('job_id')) {",
+              "    pm.execution.skipRequest();",
+              "    throw new Error('An export already exists. Check it, or clear job_id for a new export.');",
+              "}",
+              "const tag = String(pm.environment.get('tag_id') || '');",
+              "if (tag && !/^[1-9]\\d*$/.test(tag)) {",
+              "    pm.execution.skipRequest();",
+              "    throw new Error('tag_id must be a positive integer, or blank for all missions.');",
+              "}",
+              "['mission_ids', 'selection_scope', 'job_status', 'download_url', 'download_job_id']",
+              "    .forEach(key => pm.environment.unset(key));",
+              "pm.request.url.query.remove('tags');",
+              "if (tag) pm.request.url.query.upsert({key: 'tags', value: tag});"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code !== 200) throw new Error('Mission selection failed.');",
+              "const data = pm.response.json();",
+              "const ids = data.results && data.results.id;",
+              "if (!Array.isArray(ids) || !ids.length || ids.some(id => typeof id !== 'string' || !id)) {",
+              "    throw new Error('No valid missions found. Stop here; an empty export would select all missions.');",
+              "}",
+              "pm.environment.set('mission_ids', JSON.stringify([...new Set(ids)]));",
+              "pm.environment.set('selection_scope', JSON.stringify([",
+              "    String(pm.variables.get('organization_id')),",
+              "    String(pm.variables.get('tag_id') || '')",
+              "]));"
+            ]
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "followRedirects": false,
+        "disableCookies": true
+      }
+    },
+    {
+      "name": "5. Create export",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/data_export_request/",
+        "description": "Send once. Uses mission_ids and the five include_* options. Metrics are excluded by default. Saves job_id; do not retry a timeout blindly. job_id=unknown means check Collect export history before clearing it.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"kind\": \"all data\",\n  \"missions\": {{mission_ids}},\n  \"filters\": {\n    \"organization\": {{organization_id}},\n    \"metrics\": {{include_metrics}},\n    \"events\": {{include_events}},\n    \"sensors\": {{include_sensors}},\n    \"tags\": {{include_tags}},\n    \"mission_logs\": {{include_mission_logs}}\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "function stop(message) {",
+              "    pm.execution.skipRequest();",
+              "    throw new Error(message);",
+              "}",
+              "if (pm.environment.get('job_id')) stop('An export may already exist. Check it before creating another.');",
+              "const org = String(pm.environment.get('organization_id') || '');",
+              "const scope = JSON.stringify([org, String(pm.environment.get('tag_id') || '')]);",
+              "if (!/^[1-9]\\d*$/.test(org) || scope !== pm.environment.get('selection_scope')) {",
+              "    stop('Organization or tag changed. Send Select missions again.');",
+              "}",
+              "let missions;",
+              "try { missions = JSON.parse(pm.environment.get('mission_ids')); } catch (_) {}",
+              "if (!Array.isArray(missions) || !missions.length || missions.some(id => typeof id !== 'string' || !id)) {",
+              "    stop('Send Select missions first. An empty mission list is unsafe.');",
+              "}",
+              "['metrics', 'events', 'sensors', 'tags', 'mission_logs'].forEach(key => {",
+              "    const value = String(pm.environment.get('include_' + key));",
+              "    if (value !== 'true' && value !== 'false') stop('Set include_' + key + ' to true or false.');",
+              "    pm.variables.set('include_' + key, value);",
+              "});",
+              "pm.variables.set('organization_id', org);",
+              "pm.variables.set('mission_ids', JSON.stringify(missions));",
+              "['job_status', 'download_url', 'download_job_id'].forEach(key => pm.environment.unset(key));",
+              "// A timed-out POST may have succeeded. Block accidental duplicate submissions.",
+              "pm.environment.set('job_id', 'unknown');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code < 200 || pm.response.code >= 300) {",
+              "    throw new Error('Export was not confirmed. Check Collect export history before retrying.');",
+              "}",
+              "const id = pm.response.json().id;",
+              "if (!Number.isSafeInteger(id) || id < 1) {",
+              "    throw new Error('No job ID returned. Check Collect export history before retrying.');",
+              "}",
+              "pm.environment.set('job_id', String(id));"
+            ]
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "followRedirects": false,
+        "disableCookies": true
+      }
+    },
+    {
+      "name": "6. Check export",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/data_export_request/{{job_id}}/",
+        "description": "Send every 10 seconds until status is success; progress 100 is not completion. Stop if failed/error or after 30 minutes and keep job_id for later. Saves download_url only on success."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.environment.unset('download_url');",
+              "pm.environment.unset('download_job_id');",
+              "pm.environment.unset('job_status');",
+              "if (!/^[1-9]\\d*$/.test(String(pm.environment.get('job_id') || ''))) {",
+              "    pm.execution.skipRequest();",
+              "    throw new Error('Set a numeric job_id. If it is unknown, check Collect export history first.');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code !== 200) throw new Error('Could not check the export. Keep the job_id.');",
+              "const data = pm.response.json();",
+              "pm.environment.set('job_status', data.status);",
+              "if (data.status === 'success') {",
+              "    const url = data.download_url;",
+              "    if (typeof url !== 'string' || !/^https:\\/\\/[A-Za-z0-9.-]+(?::443)?\\/[^\\s\\\\{}#]*$/.test(url)) {",
+              "        throw new Error('The export did not return a valid HTTPS download URL.');",
+              "    }",
+              "    pm.environment.set('download_url', url);",
+              "    pm.environment.set('download_job_id', String(pm.variables.get('job_id')));",
+              "} else if (data.status === 'failed' || data.status === 'error') {",
+              "    throw new Error('Export failed. Contact Geocene with the job_id.');",
+              "} else if (data.status !== 'pending' && data.status !== 'processing') {",
+              "    throw new Error('Unknown export status. Keep the job_id and contact Geocene.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "followRedirects": false,
+        "disableCookies": true
+      }
+    },
+    {
+      "name": "7. Download ZIP",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{download_url}}",
+        "description": "Choose Send and Download from the Send dropdown and save as export.zip. No API credentials are sent. If the URL expires, repeat Check export; contact Geocene if it remains expired.",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const url = pm.environment.get('download_url');",
+              "if (String(pm.environment.get('job_id')) !== pm.environment.get('download_job_id') ||",
+              "    pm.environment.get('job_status') !== 'success' || typeof url !== 'string' ||",
+              "    !/^https:\\/\\/[A-Za-z0-9.-]+(?::443)?\\/[^\\s\\\\{}#]*$/.test(url)) {",
+              "    pm.execution.skipRequest();",
+              "    throw new Error('Send Check export until its status is success.');",
+              "}",
+              "// This request has No Auth and a disabled cookie jar.",
+              "pm.variables.set('download_url', url);"
+            ]
+          }
+        }
+      ],
+      "protocolProfileBehavior": {
+        "followRedirects": false,
+        "disableCookies": true,
+        "disableUrlEncoding": true
+      }
+    }
+  ]
+}

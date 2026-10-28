@@ -1,0 +1,14 @@
+{
+  "kind": "all data",
+  "missions": [
+    "EXAMPLE_MISSION_ID"
+  ],
+  "filters": {
+    "organization": 0,
+    "metrics": false,
+    "events": true,
+    "sensors": true,
+    "tags": true,
+    "mission_logs": true
+  }
+}

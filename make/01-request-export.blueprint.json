@@ -1,0 +1,505 @@
+{
+  "name": "Geocene - 1 - Request tagged export",
+  "flow": [
+    {
+      "id": 1,
+      "module": "util:SetVariables",
+      "version": 1,
+      "parameters": {},
+      "mapper": {
+        "scope": "roundtrip",
+        "variables": [
+          {
+            "name": "organization_id",
+            "value": ""
+          },
+          {
+            "name": "mission_tag_id",
+            "value": ""
+          },
+          {
+            "name": "include_metrics",
+            "value": false
+          },
+          {
+            "name": "include_events",
+            "value": true
+          },
+          {
+            "name": "include_sensors",
+            "value": true
+          },
+          {
+            "name": "include_tags",
+            "value": true
+          },
+          {
+            "name": "include_mission_logs",
+            "value": true
+          }
+        ]
+      },
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0,
+          "name": "Your IDs and data inclusion options"
+        },
+        "expect": [
+          {
+            "name": "variables",
+            "type": "array",
+            "label": "Variables",
+            "spec": [
+              {
+                "name": "name",
+                "label": "Variable name",
+                "type": "text",
+                "required": true
+              },
+              {
+                "name": "value",
+                "label": "Variable value",
+                "type": "any"
+              }
+            ]
+          },
+          {
+            "name": "scope",
+            "label": "Variable lifetime",
+            "type": "select",
+            "required": true,
+            "validate": {
+              "enum": [
+                "roundtrip",
+                "execution"
+              ]
+            }
+          }
+        ],
+        "interface": [
+          {
+            "name": "organization_id",
+            "label": "organization_id",
+            "type": "any"
+          },
+          {
+            "name": "mission_tag_id",
+            "label": "mission_tag_id",
+            "type": "any"
+          },
+          {
+            "name": "include_metrics",
+            "label": "include_metrics",
+            "type": "any"
+          },
+          {
+            "name": "include_events",
+            "label": "include_events",
+            "type": "any"
+          },
+          {
+            "name": "include_sensors",
+            "label": "include_sensors",
+            "type": "any"
+          },
+          {
+            "name": "include_tags",
+            "label": "include_tags",
+            "type": "any"
+          },
+          {
+            "name": "include_mission_logs",
+            "label": "include_mission_logs",
+            "type": "any"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "module": "http:ActionSendDataAPIKeyAuth",
+      "version": 3,
+      "parameters": {
+        "auth": null,
+        "handleErrors": true,
+        "useNewZLibDeCompress": true
+      },
+      "mapper": {
+        "url": "https://collect.geocene.com/missions/flat_values/",
+        "serializeUrl": false,
+        "method": "get",
+        "headers": [],
+        "qs": [
+          {
+            "name": "organization",
+            "value": "{{1.organization_id}}"
+          },
+          {
+            "name": "archived",
+            "value": "false"
+          },
+          {
+            "name": "tags",
+            "value": "{{1.mission_tag_id}}"
+          },
+          {
+            "name": "tag_logic",
+            "value": "all"
+          }
+        ],
+        "bodyType": "",
+        "parseResponse": true,
+        "timeout": "60",
+        "shareCookies": false,
+        "ca": "",
+        "rejectUnauthorized": true,
+        "followRedirect": false,
+        "useQuerystring": false,
+        "gzip": true,
+        "useMtls": false,
+        "followAllRedirects": false
+      },
+      "metadata": {
+        "designer": {
+          "x": 240,
+          "y": 0,
+          "name": "Select active missions with one tag"
+        },
+        "parameters": [
+          {
+            "name": "auth",
+            "type": "keychain:apikeyauth",
+            "label": "auth",
+            "required": true
+          },
+          {
+            "name": "handleErrors",
+            "type": "boolean",
+            "label": "handleErrors",
+            "required": true
+          },
+          {
+            "name": "useNewZLibDeCompress",
+            "type": "hidden",
+            "label": "useNewZLibDeCompress"
+          }
+        ]
+      },
+      "filter": {
+        "name": "Both IDs must be set",
+        "conditions": [
+          [
+            {
+              "a": "{{1.organization_id}}",
+              "o": "number:greater",
+              "b": "0"
+            },
+            {
+              "a": "{{1.mission_tag_id}}",
+              "o": "number:greater",
+              "b": "0"
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "module": "json:CreateJSON",
+      "version": 1,
+      "parameters": {
+        "type": null,
+        "space": ""
+      },
+      "mapper": {
+        "kind": "all data",
+        "missions": "{{3.data.results.id}}",
+        "filters": {
+          "organization": "{{1.organization_id}}",
+          "metrics": "{{1.include_metrics}}",
+          "events": "{{1.include_events}}",
+          "sensors": "{{1.include_sensors}}",
+          "tags": "{{1.include_tags}}",
+          "mission_logs": "{{1.include_mission_logs}}"
+        }
+      },
+      "metadata": {
+        "designer": {
+          "x": 480,
+          "y": 0,
+          "name": "Build JSON from inclusion options"
+        },
+        "parameters": [
+          {
+            "name": "type",
+            "type": "udt",
+            "label": "type",
+            "required": true
+          },
+          {
+            "name": "space",
+            "type": "select",
+            "label": "space"
+          }
+        ],
+        "expect": [
+          {
+            "name": "kind",
+            "type": "text",
+            "label": "kind",
+            "required": true
+          },
+          {
+            "name": "missions",
+            "type": "array",
+            "label": "missions",
+            "spec": {
+              "type": "text"
+            },
+            "required": true
+          },
+          {
+            "name": "filters",
+            "type": "collection",
+            "label": "filters",
+            "spec": [
+              {
+                "name": "organization",
+                "type": "number",
+                "label": "organization",
+                "required": true
+              },
+              {
+                "name": "metrics",
+                "type": "boolean",
+                "label": "metrics",
+                "required": true
+              },
+              {
+                "name": "events",
+                "type": "boolean",
+                "label": "events",
+                "required": true
+              },
+              {
+                "name": "sensors",
+                "type": "boolean",
+                "label": "sensors",
+                "required": true
+              },
+              {
+                "name": "tags",
+                "type": "boolean",
+                "label": "tags",
+                "required": true
+              },
+              {
+                "name": "mission_logs",
+                "type": "boolean",
+                "label": "mission_logs",
+                "required": true
+              }
+            ],
+            "required": true
+          }
+        ]
+      },
+      "filter": {
+        "name": "Empty selection stops; never submit missions []",
+        "conditions": [
+          [
+            {
+              "a": "{{length(3.data.results.id)}}",
+              "o": "number:greater",
+              "b": "0"
+            }
+          ]
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "module": "http:ActionSendDataAPIKeyAuth",
+      "version": 3,
+      "parameters": {
+        "auth": null,
+        "handleErrors": true,
+        "useNewZLibDeCompress": true
+      },
+      "mapper": {
+        "url": "https://collect.geocene.com/data_export_request/",
+        "serializeUrl": false,
+        "method": "post",
+        "headers": [],
+        "qs": [],
+        "bodyType": "raw",
+        "parseResponse": true,
+        "timeout": "60",
+        "shareCookies": false,
+        "ca": "",
+        "rejectUnauthorized": true,
+        "followRedirect": false,
+        "useQuerystring": false,
+        "gzip": true,
+        "useMtls": false,
+        "followAllRedirects": false,
+        "contentType": "application/json",
+        "data": "{{4.json}}"
+      },
+      "metadata": {
+        "designer": {
+          "x": 720,
+          "y": 0,
+          "name": "Create exactly one export"
+        },
+        "parameters": [
+          {
+            "name": "auth",
+            "type": "keychain:apikeyauth",
+            "label": "auth",
+            "required": true
+          },
+          {
+            "name": "handleErrors",
+            "type": "boolean",
+            "label": "handleErrors",
+            "required": true
+          },
+          {
+            "name": "useNewZLibDeCompress",
+            "type": "hidden",
+            "label": "useNewZLibDeCompress"
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "module": "datastore:AddRecord",
+      "version": 1,
+      "parameters": {
+        "datastore": null
+      },
+      "mapper": {
+        "key": "{{5.data.id}}",
+        "data": {
+          "job_id": "{{5.data.id}}",
+          "submitted_at": "{{formatDate(now; \"YYYY-MM-DDTHH:mm:ss.SSSZ\")}}",
+          "attempts": 0,
+          "state": "pending",
+          "last_status": "{{5.data.status}}",
+          "download_url": "",
+          "organization_id": "{{1.organization_id}}",
+          "tag_id": "{{1.mission_tag_id}}"
+        },
+        "overwrite": false
+      },
+      "metadata": {
+        "designer": {
+          "x": 960,
+          "y": 0,
+          "name": "Remember job ID before waiting"
+        },
+        "parameters": [
+          {
+            "name": "datastore",
+            "type": "datastore",
+            "label": "datastore",
+            "required": true
+          }
+        ],
+        "expect": [
+          {
+            "name": "key",
+            "type": "text",
+            "label": "key"
+          },
+          {
+            "name": "overwrite",
+            "type": "boolean",
+            "label": "overwrite",
+            "required": true
+          },
+          {
+            "name": "data",
+            "type": "collection",
+            "label": "data",
+            "spec": [
+              {
+                "name": "job_id",
+                "type": "text",
+                "label": "job_id"
+              },
+              {
+                "name": "submitted_at",
+                "type": "text",
+                "label": "submitted_at"
+              },
+              {
+                "name": "attempts",
+                "type": "number",
+                "label": "attempts"
+              },
+              {
+                "name": "state",
+                "type": "text",
+                "label": "state"
+              },
+              {
+                "name": "last_status",
+                "type": "text",
+                "label": "last_status"
+              },
+              {
+                "name": "download_url",
+                "type": "text",
+                "label": "download_url"
+              },
+              {
+                "name": "organization_id",
+                "type": "text",
+                "label": "organization_id"
+              },
+              {
+                "name": "tag_id",
+                "type": "text",
+                "label": "tag_id"
+              }
+            ]
+          }
+        ]
+      },
+      "filter": {
+        "name": "Response must contain a job ID",
+        "conditions": [
+          [
+            {
+              "a": "{{5.data.id}}",
+              "o": "number:greater",
+              "b": "0"
+            }
+          ]
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "instant": false,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": true,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false,
+      "freshVariables": false
+    },
+    "designer": {
+      "orphans": []
+    }
+  }
+}
